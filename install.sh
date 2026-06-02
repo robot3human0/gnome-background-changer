@@ -6,13 +6,18 @@
 
 APP_NAME="gnome-background-changer"
 BIN_NAME="gnome-background-changer"
-MODULE="github.com/robot3human0/gnome-background-changer"
 
 INSTALL_DIR="${HOME}/.local/bin"
+
+APP_DIR="${HOME}/.local/share/applications"
+APP_DESKTOP_FILE="${APP_DIR}/${APP_NAME}.desktop"
+
 ICON_SRC="icons/tray_icon.png"
 ICON_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps"
 ICON_DST="${ICON_DIR}/${APP_NAME}.png"
+
 AUTOSTART_DIR="${HOME}/.config/autostart"
+AUTOSTART_FILE="${AUTOSTART_DIR}/${APP_NAME}.desktop"
 
 # ———— FLAGS ——————————————————————————————————
 
@@ -63,33 +68,53 @@ uninstall() {
  
     local removed=0
  
+    # Remove binary
     if [[ -f "${INSTALL_DIR}/${BIN_NAME}" ]]; then
         rm -f "${INSTALL_DIR}/${BIN_NAME}"
         success "binary file removed: ${INSTALL_DIR}/${BIN_NAME}"
         removed=1
     fi
  
+    # Remove icons
     if [[ -f "${HOME}/.local/share/${APP_NAME}/icons/tray_icon.png" ]]; then
         rm -f "${HOME}/.local/share/${APP_NAME}/icons/tray_icon.png"
         success "Tray icon removed."
         removed=1
     fi
 
+    # Remove system icon
     if [[ -f "${ICON_DST}" ]]; then
         rm -f "${ICON_DST}"
         success "Icon removed: ${ICON_DST}"
         removed=1
     fi
  
+    # Remove desktop entry
+    if [[ -f "${APP_DESKTOP_FILE}" ]]; then
+        rm -f "${APP_DESKTOP_FILE}"
+        success "Desktop entry removed: ${APP_DESKTOP_FILE}"
+        removed=1
+    fi
+
+    # Remove autostart entry
     if [[ -f "${AUTOSTART_FILE}" ]]; then
         rm -f "${AUTOSTART_FILE}"
-        success "Desktop entry removed: ${AUTOSTART_FILE}"
+        success "Autostart entry removed: ${AUTOSTART_FILE}"
         removed=1
     fi
  
     if [[ $removed -eq 0 ]]; then
         warn "Nothing found - the application was not installed."
     else
+        rmdir --ignore-fail-on-non-empty \
+            "${HOME}/.local/share/${APP_NAME}/icons" \
+            "${HOME}/.local/share/${APP_NAME}" 2>/dev/null
+        if command -v gtk-update-icon-cache &>/dev/null; then
+            gtk-update-icon-cache -f -t "${HOME}/.local/share/icons/hicolor" 2>/dev/null || true
+        fi
+        if command -v update-desktop-database &>/dev/null; then
+            update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
+        fi
         success "The ${APP_NAME} successfully uninstalled."
     fi
     exit 0
@@ -100,11 +125,9 @@ uninstall() {
 # ═════════════════════════════════════════════
 check_deps() {
     info "Check dependencies ..."
-    for cmd in go git; do
-        if ! command -v "$cmd" &>/dev/null; then
-            error "Command not found: ${cmd}. Install it and repeat again"
-        fi
-    done
+    if ! command -v "go" &>/dev/null; then
+        error "Command not found: go. Install it and repeat again"
+    fi
  
     local go_version
     go_version=$(go version | grep -oP 'go\K[0-9]+\.[0-9]+')
@@ -130,22 +153,6 @@ build() {
     info "Building ${APP_NAME}..."
     go build -v -o "${BIN_NAME}" "./cmd/${APP_NAME}"
     success "Binary built: ./${BIN_NAME}"
-}
-
-create_desktop_file() {
-    local dir_path="$1"
-    mkdir -p "${dir_path}"
-    cat > "${dir_path}/${APP_NAME}.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=GNOME Background Changer
-Comment=Automatic wallpaper rotation for GNOME
-Exec=${INSTALL_DIR}/${BIN_NAME}
-Icon=${APP_NAME}
-Terminal=false
-Hidden=false
-X-GNOME-Autostart-enabled=true
-EOF
 }
  
 install_bin() {
@@ -183,18 +190,39 @@ install_icon() {
 
 install_desktop_entry() {
     info "Creating desktop entry..."
-
-    local app_dir="${HOME}/.local/share/applications"
-    create_desktop_file "${app_dir}"
-
+    mkdir -p "${APP_DIR}"
+    cat > "${APP_DESKTOP_FILE}" <<EOF
+[Desktop Entry]
+Type=Application
+Name=GNOME Background Changer
+Categories=Utility;DesktopSettings;
+Comment=Automatic wallpaper rotation for GNOME
+Exec=${INSTALL_DIR}/${BIN_NAME}
+Icon=${APP_NAME}
+Terminal=false
+Hidden=false
+StartupNotify=false
+Version=1.0
+EOF
     success "Desktop entry configured"
 }
 
 install_autostart() {
     info "Creating autostart entry..."
-
-    create_desktop_file "${AUTOSTART_DIR}"
-    
+    mkdir -p "${AUTOSTART_DIR}"
+    cat > "${AUTOSTART_FILE}" <<EOF
+[Desktop Entry]
+Type=Application
+Name=GNOME Background Changer
+Categories=Utility;DesktopSettings;
+Comment=Automatic wallpaper rotation for GNOME
+Exec=${INSTALL_DIR}/${BIN_NAME}
+Icon=${APP_NAME}
+Terminal=false
+Hidden=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+EOF
     success "Autostart configured"
 }
  
@@ -222,6 +250,10 @@ main() {
     install_icon
     install_desktop_entry
     [[ "$ENABLE_AUTOSTART" == true ]] && install_autostart
+
+    if command -v update-desktop-database &>/dev/null; then
+        update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
+    fi
  
     echo ""
     echo -e "${GREEN}══════════════════════════════════════════${NC}"
