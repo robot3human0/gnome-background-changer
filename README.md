@@ -11,6 +11,9 @@ Automatic wallpaper rotation daemon for GNOME with a system tray icon.
 ## Requirements
 * GNOME desktop with `gsettings`
 * Go 1.21+ (only for building from source)
+* pkg-config package
+* Appindicator library (ayatana-appindicator3)
+
 
 ## Installation
 
