@@ -219,8 +219,8 @@ main() {
     [[ "$RUN_TESTS" == true ]] && run_tests
     build
     install_bin
-    install_desktop_entry
     install_icon
+    install_desktop_entry
     [[ "$ENABLE_AUTOSTART" == true ]] && install_autostart
  
     echo ""
