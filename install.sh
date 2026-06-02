@@ -125,9 +125,8 @@ uninstall() {
 # ═════════════════════════════════════════════
 check_deps() {
     info "Check dependencies ..."
-    if ! command -v "go" &>/dev/null; then
-        error "Command not found: go. Install it and repeat again"
-    fi
+    command -v go >/dev/null || \
+        error "Go not found"
  
     local go_version
     go_version=$(go version | grep -oP 'go\K[0-9]+\.[0-9]+')
@@ -137,7 +136,15 @@ check_deps() {
     if [[ $major -lt 1 ]] || { [[ $major -eq 1 ]] && [[ $minor -lt 21 ]]; }; then
         error "Go 1.21+ is required. Installed version: ${go_version}"
     fi
-    success "Go ${go_version} — OK"
+
+    command -v pkg-config >/dev/null || \
+        error "pkg-config not found"
+
+    pkg-config --exists appindicator3-0.1 || \
+        pkg-config --exists ayatana-appindicator3-0.1 || \
+        error "Required AppIndicator library not found. On Debian/Ubuntu: sudo apt install libayatana-appindicator3-dev"
+
+    success "Dependencies OK"
 }
  
 run_tests() {
@@ -151,15 +158,20 @@ run_tests() {
  
 build() {
     info "Building ${APP_NAME}..."
-    go build -v -o "${BIN_NAME}" "./cmd/${APP_NAME}"
+    go build -v -o "${BIN_NAME}" "./cmd/${APP_NAME}" || \
+        error "Build failed"
     success "Binary built: ./${BIN_NAME}"
 }
  
 install_bin() {
+    [[ -f "${BIN_NAME}" ]] || error "Binary not found: ${BIN_NAME}"
+
     info "Installing binary to ${INSTALL_DIR}..."
+    
     mkdir -p "${INSTALL_DIR}"
     mv "${BIN_NAME}" "${INSTALL_DIR}/${BIN_NAME}"
     chmod +x "${INSTALL_DIR}/${BIN_NAME}"
+
     success "Installed: ${INSTALL_DIR}/${BIN_NAME}"
  
     # Warn if ~/.local/bin is not in PATH
