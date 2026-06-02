@@ -13,7 +13,6 @@ ICON_SRC="icons/tray_icon.png"
 ICON_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps"
 ICON_DST="${ICON_DIR}/${APP_NAME}.png"
 AUTOSTART_DIR="${HOME}/.config/autostart"
-AUTOSTART_FILE="${AUTOSTART_DIR}/${APP_NAME}.desktop"
 
 # ———— FLAGS ——————————————————————————————————
 
@@ -132,6 +131,22 @@ build() {
     go build -v -o "${BIN_NAME}" "./cmd/${APP_NAME}"
     success "Binary built: ./${BIN_NAME}"
 }
+
+create_desktop_file() {
+    local dir_path="$1"
+    mkdir -p "${dir_path}"
+    cat > "${dir_path}/${APP_NAME}.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=GNOME Background Changer
+Comment=Automatic wallpaper rotation for GNOME
+Exec=${INSTALL_DIR}/${BIN_NAME}
+Icon=${APP_NAME}
+Terminal=false
+Hidden=false
+X-GNOME-Autostart-enabled=true
+EOF
+}
  
 install_bin() {
     info "Installing binary to ${INSTALL_DIR}..."
@@ -165,22 +180,22 @@ install_icon() {
     fi
     success "Icon installed: ${xdg_icon_dir}"
 }
- 
+
+install_desktop_entry() {
+    info "Creating desktop entry..."
+
+    local app_dir="${HOME}/.local/share/applications"
+    create_desktop_file "${app_dir}"
+
+    success "Desktop entry configured"
+}
+
 install_autostart() {
     info "Creating autostart entry..."
-    mkdir -p "${AUTOSTART_DIR}"
-    cat > "${AUTOSTART_FILE}" <<EOF
-[Desktop Entry]
-Type=Application
-Name=GNOME Background Changer
-Comment=Automatic wallpaper rotation for GNOME
-Exec=${INSTALL_DIR}/${BIN_NAME}
-Icon=${APP_NAME}
-Terminal=false
-Hidden=false
-X-GNOME-Autostart-enabled=true
-EOF
-    success "Autostart configured: ${AUTOSTART_FILE}"
+
+    create_desktop_file "${AUTOSTART_DIR}"
+    
+    success "Autostart configured"
 }
  
 # ═════════════════════════════════════════════
@@ -204,6 +219,7 @@ main() {
     [[ "$RUN_TESTS" == true ]] && run_tests
     build
     install_bin
+    install_desktop_entry
     install_icon
     [[ "$ENABLE_AUTOSTART" == true ]] && install_autostart
  
