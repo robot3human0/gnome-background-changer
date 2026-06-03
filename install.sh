@@ -233,6 +233,7 @@ Icon=${APP_NAME}
 Terminal=false
 Hidden=false
 StartupNotify=false
+Version=1.0
 X-GNOME-Autostart-enabled=true
 EOF
     success "Autostart configured"
