@@ -41,5 +41,10 @@ gnome-background-changer
 The app appears in the system tray. Click to access the menu.
 On first run, open **Settings** to choose a wallpaper source folder and interval.
 
+**Defaults:** wallpaper folder — `~/Pictures`, interval — 30 minutes.
+
+> **Note:** If `~/Pictures` is empty on first run, the app may show an error.<br>
+> Add some images to the folder before starting, or open **Settings** to choose a different folder.
+
 ## License
 GPL v3 — see [LICENSE](LICENSE).
