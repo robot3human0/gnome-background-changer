@@ -29,7 +29,6 @@ func main() {
 
 func onReady() {
 	systray.SetIcon(loadIcon())
-	systray.SetTitle("wallpaper changer")
 	systray.SetTooltip("wallpaper changer")
 
 	// Menu items
